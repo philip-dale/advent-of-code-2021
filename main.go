@@ -7,6 +7,6 @@ import (
 
 func main() {
 
-	s := days.Day01B()
+	s := days.Day02A()
 	fmt.Println(s)
 }
