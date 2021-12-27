@@ -1,5 +1,6 @@
 package days
 
+var dayXX_sample = []int{1, 2, 3}
 var dayXX_data = []int{1, 2, 3}
 
 func DayXXA() int {

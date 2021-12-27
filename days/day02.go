@@ -5,6 +5,13 @@ type move struct {
 	count     int
 }
 
+var day02_sample = []move{{"forward", 5},
+	{"down", 5},
+	{"forward", 8},
+	{"up", 3},
+	{"down", 8},
+	{"forward", 2}}
+
 var day02_data = []move{{"forward", 4},
 	{"forward", 6},
 	{"down", 8},
@@ -1024,5 +1031,19 @@ func Day02A() int {
 
 func Day02B() int {
 
-	return 0
+	aim := 0
+	pos_h := 0
+	pos_d := 0
+
+	for _, element := range day02_data {
+		if element.operation == "forward" {
+			pos_h += element.count
+			pos_d += aim * element.count
+		} else if element.operation == "up" {
+			aim -= element.count
+		} else if element.operation == "down" {
+			aim += element.count
+		}
+	}
+	return pos_h * pos_d
 }
