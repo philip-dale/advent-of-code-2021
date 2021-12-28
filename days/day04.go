@@ -1,5 +1,7 @@
 package days
 
+import "fmt"
+
 var day04_sample_numbers = []int{7, 4, 9, 5, 11, 17, 23, 2, 0, 14, 21, 24, 10, 16, 13, 6, 15, 25, 12, 22, 18, 20, 8, 19, 3, 26, 1}
 var day04_data_numbers = []int{94, 21, 58, 16, 4, 1, 44, 6, 17, 48, 20, 92, 55, 36, 40, 63, 62, 2, 47, 7, 46, 72, 85, 24, 66, 49, 34, 56, 98, 41, 84, 23, 86, 64, 28, 90, 39, 97, 73, 81, 12, 69, 35, 26, 75, 8, 32, 77, 52, 50, 5, 96, 14, 31, 70, 60, 29, 71, 9, 68, 19, 65, 99, 57, 54, 61, 33, 91, 27, 78, 43, 95, 42, 3, 88, 51, 53, 30, 89, 87, 93, 74, 18, 15, 80, 38, 82, 79, 0, 22, 13, 67, 59, 11, 83, 76, 10, 37, 25, 45}
 
@@ -737,6 +739,7 @@ type game_board struct {
 	raw        [board_rows][board_cols]int
 	row_totals [board_rows]int
 	col_totals [board_cols]int
+	sum        int
 }
 
 func create_board(raw_data [board_rows][board_cols]int) game_board {
@@ -744,12 +747,16 @@ func create_board(raw_data [board_rows][board_cols]int) game_board {
 		raw_data,
 		[board_rows]int{},
 		[board_cols]int{},
+		0,
 	}
+
+	// 0 can be a number so we need to increment all by 1
 
 	for r := 0; r < board_rows; r++ {
 		for c := 0; c < board_cols; c++ {
-			gb.row_totals[r] += raw_data[r][c]
-			gb.col_totals[c] += raw_data[r][c]
+			gb.row_totals[r] += raw_data[r][c] + 1
+			gb.col_totals[c] += raw_data[r][c] + 1
+			gb.sum += raw_data[r][c]
 		}
 	}
 
@@ -760,8 +767,9 @@ func (gb *game_board) play_number(number int) bool {
 	for r := 0; r < board_rows; r++ {
 		for c := 0; c < board_cols; c++ {
 			if gb.raw[r][c] == number {
-				gb.col_totals[c] -= number
-				gb.row_totals[r] -= number
+				gb.col_totals[c] -= (number + 1)
+				gb.row_totals[r] -= (number + 1)
+				gb.sum -= number
 
 				if gb.col_totals[c] == 0 || gb.row_totals[r] == 0 {
 					return true
@@ -772,23 +780,48 @@ func (gb *game_board) play_number(number int) bool {
 	return false
 }
 
-func play_bingo(boards []game_board, numbers []int) (int, int) {
-	for draw_index := 0; draw_index < len(numbers); draw_index++ {
-		for board_index := 0; board_index < len(boards); board_index++ {
-			if boards[board_index].play_number(numbers[draw_index]) {
-				return board_index, draw_index
-			}
+func (gb game_board) has_won() bool {
+	for r := 0; r < board_rows; r++ {
+		if gb.row_totals[r] == 0 {
+			return true
 		}
 	}
+	for c := 0; c < board_cols; c++ {
+		if gb.col_totals[c] == 0 {
+			return true
+		}
+	}
+	return false
+}
+
+func play_bingo(boards *[]game_board, numbers []int, number_index int) (int, int) {
+	for draw_index := number_index; draw_index < len(numbers); draw_index++ {
+		won_index := -1
+		// play all boards to cover playing for multiple wins
+		for board_index := 0; board_index < len(*boards); board_index++ {
+			if (*boards)[board_index].play_number(numbers[draw_index]) {
+				won_index = board_index
+			}
+		}
+		if won_index >= 0 {
+			return won_index, draw_index
+		}
+	}
+	fmt.Println("ERROR - No Winner?")
 	return -1, -1
 }
 
+func fast_remove(s []game_board, i int) []game_board {
+	s[i] = s[len(s)-1]
+	return s[:len(s)-1]
+}
+
+func slow_remove(slice []game_board, s int) []game_board {
+	return append(slice[:s], slice[s+1:]...)
+}
+
 func (gb *game_board) calc_result(number int) int {
-	sum := 0
-	for _, v := range gb.col_totals {
-		sum += v
-	}
-	return sum * number
+	return gb.sum * number
 }
 
 func Day04A() int {
@@ -800,12 +833,41 @@ func Day04A() int {
 		boards = append(boards, create_board(b))
 	}
 
-	winner_index, number_index := play_bingo(boards, numbers)
+	winner_index, number_index := play_bingo(&boards, numbers, 0)
 
 	return boards[winner_index].calc_result(numbers[number_index])
 }
 
 func Day04B() int {
+	board_raw := day04_data_board_raw
+	numbers := day04_data_numbers
 
-	return 0
+	boards := []game_board{}
+	for _, b := range board_raw {
+		boards = append(boards, create_board(b))
+	}
+
+	number_index := 0
+
+	for len(boards) > 0 {
+		_, number_index = play_bingo(&boards, numbers, number_index)
+
+		winners := []int{}
+		for board_index := 0; board_index < len(boards); board_index++ {
+			if boards[board_index].has_won() {
+				winners = append(winners, board_index)
+			}
+		}
+
+		if len(winners) == 1 && len(boards) == 1 {
+			break
+		}
+
+		for v := len(winners) - 1; v >= 0; v-- {
+			boards = slow_remove(boards, winners[v])
+		}
+		number_index++
+	}
+
+	return boards[0].calc_result(numbers[number_index])
 }
