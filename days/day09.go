@@ -1,6 +1,9 @@
 package days
 
-import "fmt"
+import (
+	"fmt"
+	"sort"
+)
 
 var day09_sample = [][]int{
 	{2, 1, 9, 9, 9, 4, 3, 2, 1, 0},
@@ -113,11 +116,13 @@ var day09_data = [][]int{
 }
 
 type hight_map struct {
-	size       point
-	heights    [][]int
-	low_map    [][]int // 0 is unknown, -1 low, 1 not low
-	low_points []point
-	risk_val   int
+	size        point
+	heights     [][]int
+	low_map     [][]int // 0 is unknown, -1 low, 1 not low
+	low_points  []point
+	risk_val    int
+	basin_map   [][]int
+	basin_sizes []int
 }
 
 func create_height_map(heights [][]int) (hm hight_map) {
@@ -131,10 +136,13 @@ func create_height_map(heights [][]int) (hm hight_map) {
 		make([][]int, x_size),
 		[]point{},
 		0,
+		make([][]int, x_size),
+		[]int{},
 	}
 
 	for i := range hm.low_map {
 		hm.low_map[i] = make([]int, y_size)
+		hm.basin_map[i] = make([]int, y_size)
 	}
 
 	return hm
@@ -185,7 +193,6 @@ func (hm *hight_map) scan() {
 		for y, v := range r {
 			if hm.low_map[x][y] == 0 {
 				if hm.check_side_points(x, y) {
-					fmt.Println(x, y, v)
 					hm.low_points = append(hm.low_points, point{x, y})
 					hm.low_map[x][y] = -1
 					hm.risk_val += v + 1
@@ -195,6 +202,59 @@ func (hm *hight_map) scan() {
 			}
 		}
 	}
+}
+
+func (hm *hight_map) basin_scan(x int, y int, b int, count int) int {
+	if hm.basin_map[x][y] != 0 {
+		return count
+	}
+
+	if hm.get_val(x, y) == 9 {
+		hm.basin_map[x][y] = -1
+		return count
+	}
+
+	hm.basin_map[x][y] = b
+	count++
+
+	if x != 0 {
+		count = hm.basin_scan(x-1, y, b, count)
+	}
+
+	if y != 0 {
+		count = hm.basin_scan(x, y-1, b, count)
+	}
+
+	if x != hm.size.x-1 {
+		count = hm.basin_scan(x+1, y, b, count)
+	}
+
+	if y != hm.size.y-1 {
+		count = hm.basin_scan(x, y+1, b, count)
+	}
+
+	return count
+}
+
+func (hm *hight_map) make_basins() {
+
+	basin_count := 1 // start ast 1 as 0 is defualt and therfor unasigned
+	//from each low point expand out until you see a 9
+	for _, lp := range hm.low_points {
+		size := hm.basin_scan(lp.x, lp.y, basin_count, 0)
+		if size > 0 {
+			hm.basin_sizes = append(hm.basin_sizes, size)
+			basin_count++
+		}
+	}
+}
+
+func (hm hight_map) get_basin_score() (score int) {
+	sort.Ints(hm.basin_sizes)
+	basins := len(hm.basin_sizes)
+	fmt.Println(hm.basin_sizes)
+	score = hm.basin_sizes[basins-1] * hm.basin_sizes[basins-2] * hm.basin_sizes[basins-3]
+	return score
 }
 
 func Day09A() int {
@@ -207,5 +267,9 @@ func Day09A() int {
 
 func Day09B() int {
 
-	return 0
+	hm := create_height_map(day09_data)
+	hm.scan()
+	hm.make_basins()
+
+	return hm.get_basin_score()
 }
