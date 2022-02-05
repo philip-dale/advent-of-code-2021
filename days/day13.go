@@ -1066,6 +1066,7 @@ func plot_points(points []point) {
 			a[p.x][p.y] = "*"
 		}
 	}
+
 	fmt.Println(point_count)
 	for y := 0; y < y_max; y++ {
 		for x := 0; x < x_max; x++ {

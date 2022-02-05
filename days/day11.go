@@ -48,7 +48,7 @@ func create_octo_data(data [][]int) octo_data {
 
 func (od *octo_data) clear_and_increment() {
 	for i, r := range od.energy {
-		for j, _ := range r {
+		for j := range r {
 			if od.has_flashed[i][j] == true {
 				od.has_flashed[i][j] = false
 				od.energy[i][j] = 1
@@ -88,7 +88,7 @@ func (od *octo_data) flash_cell(x int, y int, inc bool) int {
 func (od *octo_data) flash_all() int {
 	flash_count := 0
 	for i, r := range od.energy {
-		for j, _ := range r {
+		for j := range r {
 			flash_count += od.flash_cell(i, j, false)
 		}
 	}
